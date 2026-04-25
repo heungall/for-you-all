@@ -269,6 +269,7 @@
   function startDrawing() {
     cardRoles = shuffle(getRoles(attendees.length));
     assignments = []; turnIdx = 0;
+    document.querySelector('.turn-box').innerHTML = '🙋 차례: <strong id="turn-name"></strong>';
     buildCards(); updateTurn();
     showScreen('s-draw');
   }
@@ -281,7 +282,7 @@
       w.className = 'card-wrapper';
       w.innerHTML = `
         <div class="draw-card" id="card-${i}" onclick="flipCard(${i})">
-          <div class="cface cback"><div class="cback-inner"><span class="wing">🪽🪽</span><span class="cross">✝️</span></div></div>
+          <div class="cface cback"><span style="font-size:38px">🪽</span></div>
           <div class="cface cfront" id="cf-${i}" style="background:${role.bg};color:${role.color}">
             <div class="c-emoji">${role.emoji}</div>
             <div class="c-role">${role.name}</div>
@@ -335,23 +336,15 @@
   }
 
   async function sendToDiscord() {
-    const status = document.getElementById('send-status');
-    status.textContent = '전송 중...';
-
     const today = new Date().toLocaleDateString('ko-KR', { month:'long', day:'numeric', weekday:'long' });
     const lines = assignments.map(({ person, role }) => `${role.emoji} **${role.name}** → ${person}`).join('\n');
-
     try {
-      const res = await fetch('/api/send', {
+      await fetch('/api/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: `🎊 **오늘의 제비뽑기 결과** (${today})\n\n${lines}` }),
       });
-      const data = await res.json();
-      status.textContent = res.ok ? '✅ 디스코드로 전송했어요!' : `❌ 오류: ${data.error}`;
-    } catch {
-      status.textContent = '❌ 네트워크 오류가 발생했어요.';
-    }
+    } catch { /* silent */ }
   }
 
   function confetti() {
