@@ -120,8 +120,8 @@
       align-items: center; justify-content: center;
     }
     .cback {
-      background: linear-gradient(135deg, #FF85A1 0%, #C3A6FF 100%);
-      font-size: 34px; box-shadow: 0 4px 14px rgba(255, 133, 161, 0.3);
+      background: linear-gradient(135deg, #A8D8EA 0%, #E8D5F5 50%, #FFE8A3 100%);
+      box-shadow: 0 4px 14px rgba(168, 216, 234, 0.4);
     }
     .cfront { transform: rotateY(180deg); text-align: center; padding: 8px 4px; box-shadow: 0 4px 14px rgba(0,0,0,0.1); }
     .c-emoji { font-size: 28px; margin-bottom: 4px; }
@@ -143,8 +143,9 @@
     .r-role  { font-size: 13px; }
     .r-name  { font-size: 18px; margin-left: auto; font-weight: bold; }
 
-    /* Send status */
-    .send-status { text-align: center; font-size: 14px; margin-top: 8px; min-height: 20px; color: #5865F2; }
+    .cback-inner { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .cback-inner .wing { font-size: 22px; }
+    .cback-inner .cross { font-size: 18px; }
 
     /* Confetti */
     @keyframes confettiFall {
@@ -188,7 +189,7 @@
         <div class="dot active"></div>
         <div class="dot"></div>
       </div>
-      <h1><span class="bounce">🎴</span> 제비뽑기!</h1>
+      <h1><span class="bounce">👼</span> 제비뽑기!</h1>
       <p class="subtitle">카드를 클릭해서 역할을 뽑아요~</p>
       <div class="turn-box">🙋 차례: <strong id="turn-name"></strong></div>
       <div class="cards-grid" id="cards-grid"></div>
@@ -206,8 +207,6 @@
       <h1><span class="bounce">🎊</span> 오늘의 역할!</h1>
       <p class="subtitle">다들 수고해요~! 💕</p>
       <div class="result-list" id="result-list"></div>
-      <button class="btn btn-discord" onclick="sendToDiscord()">📨 디스코드로 다시 보내기</button>
-      <div class="send-status" id="send-status"></div>
       <button class="btn btn-yellow" onclick="resetApp()">🔄 다시 하기</button>
     </div>
   </div>
@@ -282,7 +281,7 @@
       w.className = 'card-wrapper';
       w.innerHTML = `
         <div class="draw-card" id="card-${i}" onclick="flipCard(${i})">
-          <div class="cface cback">🎴</div>
+          <div class="cface cback"><div class="cback-inner"><span class="wing">🪽🪽</span><span class="cross">✝️</span></div></div>
           <div class="cface cfront" id="cf-${i}" style="background:${role.bg};color:${role.color}">
             <div class="c-emoji">${role.emoji}</div>
             <div class="c-role">${role.name}</div>
