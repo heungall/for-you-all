@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>✨ 제비뽑기</title>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Jua', sans-serif;
+      background: linear-gradient(135deg, #fff0f8 0%, #f0f5ff 50%, #f5f0ff 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .bubble {
+      position: fixed;
+      border-radius: 50%;
+      opacity: 0.18;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bubble-1 { width: 220px; height: 220px; background: #FF85A1; top: -60px; left: -60px; }
+    .bubble-2 { width: 280px; height: 280px; background: #85D8CE; bottom: -80px; right: -80px; }
+    .bubble-3 { width: 140px; height: 140px; background: #C3A6FF; top: 40%; left: -40px; }
+    .bubble-4 { width: 100px; height: 100px; background: #FFD166; top: 20%; right: -20px; }
+
+    .screen { display: none; width: 100%; max-width: 460px; position: relative; z-index: 1; }
+    .screen.active { display: block; }
+
+    .box {
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(10px);
+      border-radius: 36px;
+      padding: 32px 24px 28px;
+      box-shadow: 0 12px 40px rgba(255, 133, 161, 0.18), 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .progress { display: flex; justify-content: center; gap: 8px; margin-bottom: 22px; }
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 5px; background: #FFD6E7;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .dot.active { width: 28px; background: #FF85A1; }
+
+    h1 { font-size: 26px; text-align: center; color: #FF6B9D; margin-bottom: 6px; }
+    .subtitle { text-align: center; color: #C0A0B0; font-size: 14px; margin-bottom: 22px; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-7px); }
+    }
+    .bounce { display: inline-block; animation: bounce 1.2s ease infinite; }
+
+    /* Person Grid */
+    .person-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+    .person-chip input { display: none; }
+    .person-chip label {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 12px 6px; border-radius: 22px; border: 3px solid #FFD6E7;
+      background: #FFF8FB; cursor: pointer; font-size: 14px; color: #BBAAAA;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); user-select: none;
+    }
+    .person-chip label .av { font-size: 26px; margin-bottom: 4px; }
+    .person-chip input:checked + label {
+      background: linear-gradient(135deg, #FF85A1, #FF6B9D);
+      border-color: #FF85A1; color: white;
+      transform: scale(1.06);
+      box-shadow: 0 6px 18px rgba(255, 107, 157, 0.35);
+    }
+    .person-chip label:hover { transform: scale(1.05); }
+
+    .count-display { text-align: center; font-size: 18px; color: #FF6B9D; margin-bottom: 6px; }
+    .role-preview {
+      text-align: center; font-size: 12px; color: #C0A8B8;
+      margin-bottom: 18px; min-height: 18px; line-height: 1.5;
+    }
+
+    /* Buttons */
+    .btn {
+      width: 100%; padding: 15px; border: none; border-radius: 22px;
+      font-family: 'Jua', sans-serif; font-size: 19px; cursor: pointer;
+      transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1); margin-top: 10px;
+    }
+    .btn:hover:not(:disabled) { transform: scale(1.03) translateY(-3px); box-shadow: 0 10px 24px rgba(0,0,0,0.14); }
+    .btn:active:not(:disabled) { transform: scale(0.97); }
+    .btn-pink { background: linear-gradient(135deg, #FF85A1, #FF5C8A); color: white; }
+    .btn-pink:disabled { background: #E0D0D8; color: #B0A0A8; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .btn-discord { background: linear-gradient(135deg, #7289DA, #5865F2); color: white; }
+    .btn-yellow { background: linear-gradient(135deg, #FFD166, #FFC233); color: white; }
+
+    /* Drawing */
+    .turn-box {
+      text-align: center; font-size: 20px; color: #FF6B9D;
+      background: #FFF0F5; border-radius: 18px; padding: 14px; margin-bottom: 20px;
+    }
+    .turn-box strong { font-size: 24px; }
+    .cards-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 20px; }
+
+    /* Card Flip */
+    .card-wrapper { perspective: 900px; width: 76px; height: 108px; }
+    .draw-card {
+      width: 100%; height: 100%; position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.55s cubic-bezier(0.34, 1.2, 0.64, 1);
+      cursor: pointer;
+    }
+    .draw-card.flipped { transform: rotateY(180deg); cursor: default; }
+    .cface {
+      position: absolute; width: 100%; height: 100%;
+      backface-visibility: hidden; -webkit-backface-visibility: hidden;
+      border-radius: 18px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+    .cback {
+      background: linear-gradient(135deg, #FF85A1 0%, #C3A6FF 100%);
+      font-size: 34px; box-shadow: 0 4px 14px rgba(255, 133, 161, 0.3);
+    }
+    .cfront { transform: rotateY(180deg); text-align: center; padding: 8px 4px; box-shadow: 0 4px 14px rgba(0,0,0,0.1); }
+    .c-emoji { font-size: 28px; margin-bottom: 4px; }
+    .c-role { font-size: 11px; font-weight: bold; }
+    .c-name { font-size: 10px; margin-top: 2px; opacity: 0.75; }
+
+    /* Results */
+    .result-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+    .result-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 16px; border-radius: 20px;
+      opacity: 0; animation: popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.75) translateY(12px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .r-emoji { font-size: 22px; }
+    .r-role  { font-size: 13px; }
+    .r-name  { font-size: 18px; margin-left: auto; font-weight: bold; }
+
+    /* Send status */
+    .send-status { text-align: center; font-size: 14px; margin-top: 8px; min-height: 20px; color: #5865F2; }
+
+    /* Confetti */
+    @keyframes confettiFall {
+      0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+    }
+    .conf { position: fixed; animation: confettiFall linear forwards; pointer-events: none; z-index: 200; }
+  </style>
+</head>
+<body>
+
+  <div class="bubble bubble-1"></div>
+  <div class="bubble bubble-2"></div>
+  <div class="bubble bubble-3"></div>
+  <div class="bubble bubble-4"></div>
+
+  <!-- ─── Screen 1: Attendance ─── -->
+  <div class="screen active" id="s-attend">
+    <div class="box">
+      <div class="progress">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <h1><span class="bounce">✋</span> 출석 체크</h1>
+      <p class="subtitle">오늘 온 사람을 골라주세요!</p>
+      <div class="person-grid" id="person-grid"></div>
+      <div class="count-display" id="count-disp">0명 선택됨</div>
+      <div class="role-preview" id="role-prev"></div>
+      <button class="btn btn-pink" id="start-btn" disabled onclick="startDrawing()">
+        제비뽑기 시작! 🎉
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── Screen 2: Drawing ─── -->
+  <div class="screen" id="s-draw">
+    <div class="box">
+      <div class="progress">
+        <div class="dot"></div>
+        <div class="dot active"></div>
+        <div class="dot"></div>
+      </div>
+      <h1><span class="bounce">🎴</span> 제비뽑기!</h1>
+      <p class="subtitle">카드를 클릭해서 역할을 뽑아요~</p>
+      <div class="turn-box">🙋 차례: <strong id="turn-name"></strong></div>
+      <div class="cards-grid" id="cards-grid"></div>
+    </div>
+  </div>
+
+  <!-- ─── Screen 3: Results ─── -->
+  <div class="screen" id="s-result">
+    <div class="box">
+      <div class="progress">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot active"></div>
+      </div>
+      <h1><span class="bounce">🎊</span> 오늘의 역할!</h1>
+      <p class="subtitle">다들 수고해요~! 💕</p>
+      <div class="result-list" id="result-list"></div>
+      <button class="btn btn-discord" onclick="sendToDiscord()">📨 디스코드로 다시 보내기</button>
+      <div class="send-status" id="send-status"></div>
+      <button class="btn btn-yellow" onclick="resetApp()">🔄 다시 하기</button>
+    </div>
+  </div>
+
+<script>
+  const PEOPLE  = ['최주원','유인준','이진수','서동수','송미영','곽재훈','김유경','김성재','김서인'];
+  const AVATARS = ['🐰','🐻','🐸','🦊','🐱','🐨','🐹','🐯','🐧'];
+
+  const ROLES = [
+    { name:'인도',     emoji:'🎤', color:'#E84D8A', bg:'#FFF0F5' },
+    { name:'첫기도',   emoji:'🙏', color:'#2BADA0', bg:'#F0FAFA' },
+    { name:'끝기도',   emoji:'🙏', color:'#3A7FDB', bg:'#F0F5FF' },
+    { name:'질문자',   emoji:'❓', color:'#D4920A', bg:'#FFFBF0' },
+    { name:'사진사',   emoji:'📸', color:'#8B5CF6', bg:'#F8F0FF' },
+    { name:'기도정리', emoji:'📝', color:'#D45F20', bg:'#FFF5F0' },
+    { name:'꽝',       emoji:'💥', color:'#999',    bg:'#F5F5F5' },
+  ];
+
+  let attendees = [], cardRoles = [], assignments = [], turnIdx = 0;
+
+  (function buildGrid() {
+    const grid = document.getElementById('person-grid');
+    PEOPLE.forEach((name, i) => {
+      const d = document.createElement('div');
+      d.className = 'person-chip';
+      d.innerHTML = `
+        <input type="checkbox" id="p${i}" value="${name}" onchange="onCheck()">
+        <label for="p${i}"><span class="av">${AVATARS[i]}</span>${name}</label>`;
+      grid.appendChild(d);
+    });
+  })();
+
+  function getRoles(n) {
+    const base = ROLES.slice(0, Math.min(n, 6));
+    const extra = Math.max(0, n - 6);
+    return [...base, ...Array(extra).fill(ROLES[6])];
+  }
+
+  function onCheck() {
+    const checked = [...document.querySelectorAll('#person-grid input:checked')];
+    attendees = checked.map(c => c.value);
+    const n = attendees.length;
+    document.getElementById('count-disp').textContent = `${n}명 선택됨`;
+    document.getElementById('start-btn').disabled = n < 3;
+    const prev = document.getElementById('role-prev');
+    prev.textContent = n >= 3
+      ? '역할: ' + getRoles(n).map(r => r.emoji + r.name).join(' · ')
+      : n > 0 ? '최소 3명이 필요해요!' : '';
+  }
+
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function startDrawing() {
+    cardRoles = shuffle(getRoles(attendees.length));
+    assignments = []; turnIdx = 0;
+    buildCards(); updateTurn();
+    showScreen('s-draw');
+  }
+
+  function buildCards() {
+    const grid = document.getElementById('cards-grid');
+    grid.innerHTML = '';
+    cardRoles.forEach((role, i) => {
+      const w = document.createElement('div');
+      w.className = 'card-wrapper';
+      w.innerHTML = `
+        <div class="draw-card" id="card-${i}" onclick="flipCard(${i})">
+          <div class="cface cback">🎴</div>
+          <div class="cface cfront" id="cf-${i}" style="background:${role.bg};color:${role.color}">
+            <div class="c-emoji">${role.emoji}</div>
+            <div class="c-role">${role.name}</div>
+            <div class="c-name" id="cn-${i}"></div>
+          </div>
+        </div>`;
+      grid.appendChild(w);
+    });
+  }
+
+  function updateTurn() {
+    const el = document.getElementById('turn-name');
+    if (turnIdx < attendees.length) el.textContent = attendees[turnIdx];
+  }
+
+  function flipCard(i) {
+    if (turnIdx >= attendees.length) return;
+    const card = document.getElementById(`card-${i}`);
+    if (card.classList.contains('flipped')) return;
+
+    document.getElementById(`cn-${i}`).textContent = attendees[turnIdx];
+    card.classList.add('flipped');
+    assignments.push({ person: attendees[turnIdx], role: cardRoles[i] });
+    turnIdx++;
+
+    if (turnIdx < attendees.length) {
+      updateTurn();
+    } else {
+      document.querySelector('.turn-box').innerHTML = '🎉 모두 완료!';
+      setTimeout(showResults, 900);
+    }
+  }
+
+  function showResults() {
+    const list = document.getElementById('result-list');
+    list.innerHTML = '';
+    assignments.forEach(({ person, role }, i) => {
+      const el = document.createElement('div');
+      el.className = 'result-item';
+      el.style.cssText = `background:${role.bg};animation-delay:${i * 0.1}s`;
+      el.innerHTML = `
+        <span class="r-emoji">${role.emoji}</span>
+        <span class="r-role" style="color:${role.color}">${role.name}</span>
+        <span class="r-name" style="color:${role.color}">${person}</span>`;
+      list.appendChild(el);
+    });
+    document.getElementById('send-status').textContent = '';
+    showScreen('s-result');
+    confetti();
+    sendToDiscord();
+  }
+
+  async function sendToDiscord() {
+    const status = document.getElementById('send-status');
+    status.textContent = '전송 중...';
+
+    const today = new Date().toLocaleDateString('ko-KR', { month:'long', day:'numeric', weekday:'long' });
+    const lines = assignments.map(({ person, role }) => `${role.emoji} **${role.name}** → ${person}`).join('\n');
+
+    try {
+      const res = await fetch('/api/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: `🎊 **오늘의 제비뽑기 결과** (${today})\n\n${lines}` }),
+      });
+      const data = await res.json();
+      status.textContent = res.ok ? '✅ 디스코드로 전송했어요!' : `❌ 오류: ${data.error}`;
+    } catch {
+      status.textContent = '❌ 네트워크 오류가 발생했어요.';
+    }
+  }
+
+  function confetti() {
+    const colors = ['#FF85A1','#85D8CE','#FFD166','#C3A6FF','#FF9F7F','#85B8FF'];
+    for (let i = 0; i < 40; i++) {
+      setTimeout(() => {
+        const p = document.createElement('div');
+        const size = 7 + Math.random() * 9;
+        p.className = 'conf';
+        p.style.cssText = `
+          left:${Math.random()*100}vw; top:-20px;
+          width:${size}px; height:${size}px;
+          background:${colors[Math.floor(Math.random()*colors.length)]};
+          animation-duration:${1.4 + Math.random()*1.2}s;
+          animation-delay:${Math.random()*0.4}s;
+          border-radius:${Math.random() > 0.5 ? '50%' : '3px'};`;
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 3000);
+      }, i * 40);
+    }
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function resetApp() {
+    attendees = []; cardRoles = []; assignments = []; turnIdx = 0;
+    document.querySelectorAll('#person-grid input').forEach(c => c.checked = false);
+    onCheck();
+    showScreen('s-attend');
+  }
+</script>
+</body>
+</html>
